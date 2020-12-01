@@ -1,0 +1,33 @@
+#include <ros.h>                                                                                                                                                                                                   
+//#include <std_msgs/Empty.h>
+//#include <std_msgs/String.h>
+#include <std_msgs/Int16.h>
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd( 4, 6, 10, 11, 12, 13 );
+
+ros::NodeHandle nh; 
+
+void messageCb( const std_msgs::Int16& msg) {
+  lcd.clear();
+  lcd.setCursor(0, 0); 
+  lcd.print("ang:");
+  lcd.setCursor(4, 0); 
+  lcd.print(msg.data);
+}
+
+ros::Subscriber<std_msgs::Int16> sub("lotate_direction", &messageCb );
+
+void setup(){
+  nh.initNode();
+  nh.subscribe(sub);
+  lcd.begin( 16, 2 );
+  lcd.clear();
+  lcd.setCursor(0, 0); 
+}
+
+void loop(){
+  nh.spinOnce();
+  delay(1);
+}
+/****** END OF FILE *********/
