@@ -286,6 +286,9 @@ class LineBox(object):
             theta_hor = math.degrees(math.atan(theta_hor))
             cv2.putText(cv_frame_copy, 'ang = '+str(theta_hor), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), thickness=2)
 
+            cv2.putText(cv_frame_copy, '('+str(lx1-320)+','+str(-1*ly1+240)+')', (lx1,ly1 ), cv2.FONT_HERSHEY_SIMPLEX, 0.6,     (0, 255, 0), thickness=1)
+            cv2.putText(cv_frame_copy, '('+str(lx2-320)+','+str(-1*ly2+240)+')', (lx2,ly2 ), cv2.FONT_HERSHEY_SIMPLEX, 0.6,     (0, 255, 0), thickness=1)
+
             #----  Data Publish  ---------------------------------------
             self._lotate.data = theta_hor
             self._lotate_pub.publish(self._lotate)
