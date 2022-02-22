@@ -11,16 +11,6 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Int16
 from cv_bridge import CvBridge, CvBridgeError
 
-#--- cv_initialize ---------------------
-#white_pixel = 255
-#d = 0
-#n=0
-#x_cnt = 0
-#line_mtx = np.full((8,4,2),0)
-#x, y = 0,0
-#h, w = 480,80
-#------------------------------------
-
 class LineBox(object):
 
     def __init__(self):
@@ -83,7 +73,7 @@ class LineBox(object):
 
         #------------------------------------
         cv_frame_copy = cv_frame
-        #---------------
+
         hsv = cv2.cvtColor(cv_frame, cv2.COLOR_BGR2HSV)
 
         mask_black = cv2.inRange(hsv, np.array([0,0,0]), np.array([180,255,80]))
@@ -95,6 +85,8 @@ class LineBox(object):
 
         #-----------------------------------------------------
         for depth in range(8):
+
+            #-----------Rect (Horizontal)----------------------------------------
             cnt = 0 
             mask_black_trim = mask_black[y:y+h, x:x+w]
 
@@ -137,7 +129,7 @@ class LineBox(object):
                 else:
                     pass
 
-                #---- choose rect ---------------
+                #---- choose rect 対角線の長さ等で選別---------------
                 if diagonal<100 and sort_y[0][1]-30>0 and mask_white[sort_y[0][1]-70, sort_y[0][0]]==white_pixel and ang<10 and diagonal>20 and diagonal_h<90:
                     #print diagonal
 
@@ -152,7 +144,7 @@ class LineBox(object):
                 else:
                     pass
 
-            #-----------CROSS----------------------------------------
+            #-----------Rect (Vertical)----------------------------------------
             cnt_c = 0
             mask_black_trim_c = mask_black[y_c:y_c+h_c, x_c:x_c+w_c]
 
@@ -202,7 +194,7 @@ class LineBox(object):
                     pass
 
 
-            #---- choose line -------------------
+            #---- choose line (Horizontal) -------------------
             if cnt==2:
                 if box1[3][1]<box2[3][1]:
                     cv2.drawContours(cv_frame_copy,[box2],0,(255,255,0),1)
@@ -226,7 +218,7 @@ class LineBox(object):
             else:
                 pass
 
-            #---- choose line CROSS-------------------
+            #---- choose line (Vertical)-------------------
             if cnt_c==2:
                 if box1_c[3][1]<box2_c[3][1]:
                     cv2.drawContours(cv_frame_copy,[box2_c],0,(0,255,0),1)
@@ -250,16 +242,16 @@ class LineBox(object):
             else:
                 pass
 
-            #-----------------------------------------
+            #----- 変数の更新  ------------------------------------
             x += 80                                                                                                   
             x_cnt += 1
 
             y_c += 60
             y_cnt_c += 1
 
-        #------ line ----------------------------------------
         ch = 0
         ch_c = 0
+        #------ GuideLine両端座標の取得 (Horizontal) ----------------------------------------
         for depth in range(8):
             if line_mtx[depth][3][0]!=0 and line_mtx[depth][3][1]!=0 and ch!=1:
                 lx1 = line_mtx[depth][3][0]
@@ -271,6 +263,7 @@ class LineBox(object):
             else:
                 pass
 
+        #------ GuideLine両端座標の取得 (Vertical) ----------------------------------------
         for depth in range(8):
             if line_mtx_c[depth][0][0]!=0 and line_mtx_c[depth][0][1]!=0 and ch_c!=1:
                 lx1_c = line_mtx_c[depth][0][0]
@@ -282,6 +275,26 @@ class LineBox(object):
             else:
                 pass
 
+        #--- GuideLine Drawing (Horizontal) ------------------------
+        if lx1!=None and lx2!=None and ly1!=None and ly2!=None:
+            cv2.circle(cv_frame_copy, (lx1,ly1), 8, (0, 255, 0), thickness=-1)
+            cv2.circle(cv_frame_copy, (lx2,ly2), 8, (0, 255, 0), thickness=-1)
+            cv2.line(cv_frame_copy, (lx1,ly1), (lx2,ly2), (0, 0, 255),5)
+            l_w = lx2 - lx1
+            l_h = ly1 - ly2
+            theta_hor = float(l_h) / float(l_w)
+            theta_hor = math.degrees(math.atan(theta_hor))
+            cv2.putText(cv_frame_copy, 'ang = '+str(theta_hor), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), thickness=2)
+
+            #----  Data Publish  ---------------------------------------
+            self._lotate.data = theta_hor
+            self._lotate_pub.publish(self._lotate)
+            rospy.loginfo('publish_data = %.2f' % (self._lotate.data))
+
+        else :
+            pass
+
+        #--- GuideLine Drawing (Vertical) ------------------------
         if lx1_c!=None and lx2_c!=None and ly1_c!=None and ly2_c!=None:
             cv2.circle(cv_frame_copy, (lx1_c,ly1_c), 8, (0, 255, 0), thickness=-1)
             cv2.circle(cv_frame_copy, (lx2_c,ly2_c), 8, (0, 255, 0), thickness=-1)
@@ -298,26 +311,8 @@ class LineBox(object):
         else:
             pass
 
-        if lx1!=None and lx2!=None and ly1!=None and ly2!=None:
-            cv2.circle(cv_frame_copy, (lx1,ly1), 8, (0, 255, 0), thickness=-1)
-            cv2.circle(cv_frame_copy, (lx2,ly2), 8, (0, 255, 0), thickness=-1)
-            cv2.line(cv_frame_copy, (lx1,ly1), (lx2,ly2), (0, 0, 255),5)
 
-        #---- line ang --------------------------------------
-            l_w = lx2 - lx1
-            l_h = ly1 - ly2
-            theta_hor = float(l_h) / float(l_w)
-            theta_hor = math.degrees(math.atan(theta_hor))
-            cv2.putText(cv_frame_copy, 'ang = '+str(theta_hor), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), thickness=2)
-
-            #----  Data Publish  ---------------------------------------
-            self._lotate.data = theta_hor
-            self._lotate_pub.publish(self._lotate)
-            rospy.loginfo('publish_data = %.2f' % (self._lotate.data))
-        else :
-            pass
-
-        #----  frame Publish  --------------------------------------
+        #---- frame Publish --------------------------------------
         try:
             self._black_pub.publish(self._bridge.cv2_to_imgmsg(mask_black, 'mono8'))
             self._white_pub.publish(self._bridge.cv2_to_imgmsg(mask_white, 'mono8'))
